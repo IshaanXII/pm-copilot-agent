@@ -41,26 +41,25 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Hi! I'm your PM Copilot. Try:\n- `plan launch website in 6 weeks`\n- `add task: draft UAT cases`\n- `mark T-001 done`\n- `add risk: vendor delay`\n- `status report`"}
     ]
 
-# Pending quick action
-if st.session_state.get("pending"):
-    st.session_state["messages"].append({"role": "user", "content": st.session_state.pop("pending")})
-
 # Render history
 for m in st.session_state["messages"]:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-# Chat input
-if prompt := st.chat_input("Ask PM Copilot... (e.g. plan, status, risk)"):
-    st.session_state["messages"].append({"role": "user", "content": prompt})
+# Chat input + quick-action unified: any user query gets an assistant reply
+user_query = st.chat_input("Ask PM Copilot... (e.g. plan, status, risk)")
+pending = st.session_state.pop("pending", None)
+query = user_query or pending
+if query:
+    st.session_state["messages"].append({"role": "user", "content": query})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(query)
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                reply = bot.chat(prompt)
+                reply = bot.chat(query)
             except Exception as e:
-                reply = f"Error: {e}"
+                reply = f"Error: {e}\n\nCheck Manage app > Logs and Secrets (GROQ_API_KEY)."
             st.markdown(reply)
     st.session_state["messages"].append({"role": "assistant", "content": reply})
     st.rerun()
